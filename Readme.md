@@ -158,3 +158,117 @@ Once the application is running, the interactive documentation is available at:
 http://localhost:8081/swagger-ui/index.html
 
 The OpenAPI JSON is available at http://localhost:8081/v3/api-docs.
+
+---
+
+## GraphQL API
+
+En plus de l'API REST, le service expose une API GraphQL.
+
+- **Endpoint :** `POST http://localhost:8081/graphql`
+- **GraphiQL (interface de test) :** http://localhost:8081/graphiql  
+  (activer avec `spring.graphql.graphiql.enabled=true` dans `application.properties`)
+
+### Schéma
+
+```graphql
+type Query {
+    accountsList: [BankAccount]
+    bankAccountById(id: String): BankAccount
+}
+
+type Mutation {
+    addAccount(bankAccount: BankAccountRequestDto): BankAccount
+    updateAccount(id: String, bankAccount: BankAccountRequestDto): BankAccount
+    deleteAccount(id: String): Boolean
+}
+
+type BankAccount {
+    id: String
+    createAt: String
+    balance: Float
+    currency: String
+    type: String
+}
+
+input BankAccountRequestDto {
+    balance: Float
+    currency: String
+    type: String
+}
+```
+
+### Exemples
+
+**Lister les comptes**
+
+```graphql
+query {
+  accountsList {
+    id
+    balance
+    currency
+    type
+  }
+}
+```
+
+**Récupérer un compte**
+
+```graphql
+query {
+  bankAccountById(id: "<id>") {
+    id
+    balance
+    createAt
+  }
+}
+```
+
+**Créer un compte**
+
+```graphql
+mutation {
+  addAccount( bankAccount: { balance: 5000, currency: "MAD", type: SAVING_ACCOUNT }) {
+    id
+    balance
+    type
+  }
+}
+```
+
+**Modifier un compte**
+
+```graphql
+mutation {
+  updateAccount(id: "<id>", bankAccount: { balance: 7000 }) {
+    id
+    balance
+  }
+}
+```
+
+**Supprimer un compte**
+
+```graphql
+mutation {
+  deleteAccount(id: "<id>")
+}
+```
+
+### Gestion des erreurs
+
+Les erreurs sont gérées par un `DataFetcherExceptionResolverAdapter`. Un compte introuvable renvoie une erreur `NOT_FOUND` (GraphQL répond toujours en HTTP 200, l'erreur est dans le tableau `errors`) :
+
+```json
+{
+  "errors": [
+    {
+      "message": "Bank account with id <id> not found",
+      "path": ["bankAccountById"],
+      "extensions": { "classification": "NOT_FOUND" }
+    }
+  ],
+  "data": { "bankAccountById": null }
+}
+```
